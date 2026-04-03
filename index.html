@@ -1,199 +1,442 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Discord File Manager</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0e0e11;
+      --surface: #16161a;
+      --surface2: #1e1e24;
+      --border: rgba(255,255,255,0.07);
+      --border2: rgba(255,255,255,0.13);
+      --purple: #7c6ef5;
+      --purple-dim: #3d3880;
+      --green: #3ecf8e;
+      --red: #f87171;
+      --text: #e8e8f0;
+      --muted: #6e6e85;
+      --mono: 'DM Mono', monospace;
+      --sans: 'Syne', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; }
+    body { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 3rem 1rem 4rem; }
 
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: var(--font-sans); }
-#app { padding: 1.5rem 0; max-width: 620px; margin: 0 auto; }
-h2 { font-size: 18px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
-.sub { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 1.5rem; }
-.card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
-label { font-size: 13px; color: var(--color-text-secondary); display: block; margin-bottom: 6px; }
-input[type=text] { width: 100%; font-size: 14px; }
-.dropzone { border: 1.5px dashed var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 2.5rem 1rem; text-align: center; cursor: pointer; transition: background 0.15s; }
-.dropzone.over { background: var(--color-background-secondary); }
-.dropzone-icon { width: 32px; height: 32px; margin: 0 auto 10px; opacity: 0.4; }
-.dropzone p { font-size: 14px; color: var(--color-text-secondary); }
-.dropzone span { font-size: 12px; color: var(--color-text-tertiary); margin-top: 4px; display: block; }
-#file-list { margin-top: 1rem; display: flex; flex-direction: column; gap: 8px; }
-.file-item { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 10px 14px; }
-.file-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.file-name { font-size: 13px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
-.file-size { font-size: 12px; color: var(--color-text-tertiary); }
-.progress-bar { height: 4px; background: var(--color-border-tertiary); border-radius: 99px; overflow: hidden; }
-.progress-fill { height: 100%; width: 0%; background: #534AB7; border-radius: 99px; transition: width 0.2s; }
-.status-text { font-size: 11px; color: var(--color-text-secondary); margin-top: 4px; }
-.btn-send { width: 100%; padding: 10px; font-size: 14px; font-weight: 500; background: #534AB7; color: #fff; border: none; border-radius: var(--border-radius-md); cursor: pointer; transition: opacity 0.15s; }
-.btn-send:hover { opacity: 0.88; }
-.btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
-.log { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; font-size: 12px; color: var(--color-text-secondary); font-family: var(--font-mono); max-height: 140px; overflow-y: auto; line-height: 1.7; margin-top: 1rem; display: none; }
-.log.visible { display: block; }
-.log-ok { color: #1D9E75; }
-.log-err { color: #E24B4A; }
-.remove-btn { background: none; border: none; cursor: pointer; color: var(--color-text-tertiary); font-size: 16px; line-height: 1; padding: 0 0 0 8px; }
-.remove-btn:hover { color: var(--color-text-primary); }
-</style>
+    .header { text-align: center; margin-bottom: 2.5rem; }
+    .header h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.03em; }
+    .header h1 span { color: var(--purple); }
+    .header p { color: var(--muted); font-size: 0.85rem; margin-top: 6px; font-family: var(--mono); }
 
-<div id="app">
-  <h2>Discord File Uploader</h2>
-  <p class="sub">Colle ton webhook, glisse tes fichiers — ils sont découpés et envoyés directement.</p>
+    .container { width: 100%; max-width: 580px; }
 
-  <div class="card">
-    <label>URL du Webhook Discord</label>
-    <input type="text" id="webhook" placeholder="https://discord.com/api/webhooks/..." />
+    .tabs { display: flex; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 4px; margin-bottom: 1.25rem; }
+    .tab { flex: 1; padding: 9px; text-align: center; font-size: 0.85rem; font-weight: 600; font-family: var(--sans); border-radius: 7px; border: none; cursor: pointer; transition: all 0.18s; background: transparent; color: var(--muted); }
+    .tab.active { background: var(--purple); color: #fff; }
+    .tab:not(.active):hover { color: var(--text); background: var(--surface2); }
+
+    .panel { display: none; flex-direction: column; gap: 1rem; }
+    .panel.active { display: flex; }
+
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+    .card label { font-size: 0.75rem; font-family: var(--mono); color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; display: block; margin-bottom: 8px; }
+
+    input[type=text] {
+      width: 100%; background: var(--bg); border: 1px solid var(--border2); border-radius: 8px;
+      color: var(--text); font-family: var(--mono); font-size: 0.8rem; padding: 10px 12px;
+      outline: none; transition: border-color 0.15s;
+    }
+    input[type=text]:focus { border-color: var(--purple); }
+
+    .dropzone {
+      border: 1.5px dashed var(--border2); border-radius: 10px; padding: 2.5rem 1rem;
+      text-align: center; cursor: pointer; transition: all 0.18s;
+    }
+    .dropzone:hover, .dropzone.over { border-color: var(--purple); background: rgba(124,110,245,0.06); }
+    .dropzone svg { opacity: 0.35; margin: 0 auto 10px; display: block; }
+    .dropzone p { font-size: 0.9rem; color: var(--text); }
+    .dropzone span { font-size: 0.75rem; color: var(--muted); font-family: var(--mono); margin-top: 4px; display: block; }
+
+    .file-item { background: var(--surface2); border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
+    .file-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .file-name { font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 68%; }
+    .file-meta { font-size: 0.72rem; color: var(--muted); font-family: var(--mono); display: flex; align-items: center; gap: 8px; }
+    .progress-bar { height: 3px; background: var(--border2); border-radius: 99px; overflow: hidden; }
+    .progress-fill { height: 100%; width: 0%; background: var(--purple); border-radius: 99px; transition: width 0.25s; }
+    .status-text { font-size: 0.7rem; color: var(--muted); font-family: var(--mono); margin-top: 5px; }
+    .remove-btn { background: none; border: none; cursor: pointer; color: var(--muted); font-size: 18px; line-height: 1; padding: 0; transition: color 0.15s; }
+    .remove-btn:hover { color: var(--red); }
+
+    .btn { width: 100%; padding: 12px; font-size: 0.9rem; font-weight: 700; font-family: var(--sans); letter-spacing: 0.02em; background: var(--purple); color: #fff; border: none; border-radius: 10px; cursor: pointer; transition: opacity 0.15s, transform 0.1s; }
+    .btn:hover:not(:disabled) { opacity: 0.88; }
+    .btn:active:not(:disabled) { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    .btn-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+    .btn-sm { padding: 8px 16px; font-size: 0.8rem; font-weight: 600; font-family: var(--sans); background: var(--purple-dim); color: #c4bdff; border: 1px solid rgba(124,110,245,0.3); border-radius: 8px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .btn-sm:hover { background: var(--purple); color: #fff; }
+    .scan-status { font-size: 0.75rem; font-family: var(--mono); color: var(--muted); }
+
+    .log { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 0.72rem; line-height: 1.8; max-height: 140px; overflow-y: auto; display: none; }
+    .log.visible { display: block; }
+    .log-ok { color: var(--green); }
+    .log-err { color: var(--red); }
+    .log-dim { color: var(--muted); }
+
+    .dl-item { background: var(--surface2); border-radius: 8px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .dl-info { min-width: 0; }
+    .dl-name { font-size: 0.85rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dl-meta { font-size: 0.7rem; font-family: var(--mono); color: var(--muted); margin-top: 3px; }
+    .dl-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .badge { font-size: 0.65rem; font-family: var(--mono); padding: 3px 8px; border-radius: 99px; background: rgba(124,110,245,0.15); color: #a09af5; border: 1px solid rgba(124,110,245,0.25); }
+    .btn-dl { padding: 6px 14px; font-size: 0.78rem; font-weight: 600; font-family: var(--sans); background: transparent; color: var(--green); border: 1px solid rgba(62,207,142,0.3); border-radius: 7px; cursor: pointer; transition: all 0.15s; }
+    .btn-dl:hover { background: rgba(62,207,142,0.1); }
+    .btn-dl:disabled { opacity: 0.4; cursor: not-allowed; }
+    .empty { text-align: center; padding: 2rem; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
+
+    .dl-list { display: flex; flex-direction: column; gap: 6px; }
+    .dl-prog-bar { height: 2px; background: var(--border2); border-radius: 99px; overflow: hidden; margin-top: 6px; display: none; }
+    .dl-prog-fill { height: 100%; width: 0%; background: var(--green); border-radius: 99px; transition: width 0.2s; }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Discord <span>File</span> Manager</h1>
+  <p>// stockage illimité via webhook — aucun backend</p>
+</div>
+
+<div class="container">
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('upload')">⬆ Envoyer</button>
+    <button class="tab" onclick="switchTab('download')">⬇ Télécharger</button>
   </div>
 
-  <div class="card">
-    <label>Fichiers à envoyer</label>
-    <div class="dropzone" id="dropzone">
-      <svg class="dropzone-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-        <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12M8 8l4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <p>Glisse tes fichiers ici</p>
-      <span>ou clique pour sélectionner — taille illimitée</span>
-      <input type="file" id="file-input" multiple style="display:none" />
+  <!-- UPLOAD -->
+  <div id="panel-upload" class="panel active">
+    <div class="card">
+      <label>Webhook URL</label>
+      <input type="text" id="webhook-up" placeholder="https://discord.com/api/webhooks/ID/TOKEN" />
     </div>
-    <div id="file-list"></div>
+    <div class="card">
+      <label>Fichiers</label>
+      <div class="dropzone" id="dropzone">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M12 4v12M8 8l4-4 4 4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p>Glisse tes fichiers ici</p>
+        <span>ou clique pour sélectionner — taille illimitée</span>
+        <input type="file" id="file-input" multiple style="display:none" />
+      </div>
+      <div id="file-list"></div>
+    </div>
+    <button class="btn" id="send-btn" disabled>Envoyer sur Discord</button>
+    <div class="log" id="log-up"></div>
   </div>
 
-  <button class="btn-send" id="send-btn" disabled>Envoyer sur Discord</button>
-  <div class="log" id="log"></div>
+  <!-- DOWNLOAD -->
+  <div id="panel-download" class="panel">
+    <div class="card">
+      <label>Webhook URL (même qu'à l'envoi)</label>
+      <input type="text" id="webhook-dl" placeholder="https://discord.com/api/webhooks/ID/TOKEN" />
+      <div class="btn-row">
+        <button class="btn-sm" onclick="scanChannel()">Scanner le canal</button>
+        <span class="scan-status" id="scan-status"></span>
+      </div>
+    </div>
+    <div class="card" id="dl-card" style="display:none">
+      <label>Fichiers détectés</label>
+      <div class="dl-list" id="dl-list"></div>
+    </div>
+    <div class="log" id="log-dl"></div>
+  </div>
 </div>
 
 <script>
 const CHUNK_SIZE = 24 * 1024 * 1024;
-let files = [];
+let uploadFiles = [];
+let scannedFiles = {};
 
+// --- TABS ---
+function switchTab(t) {
+  ['upload','download'].forEach(id => {
+    document.getElementById('panel-'+id).classList.toggle('active', id===t);
+    document.querySelectorAll('.tab')[id==='upload'?0:1].classList.toggle('active', id===t);
+  });
+}
+
+// --- UPLOAD ---
 const dropzone = document.getElementById('dropzone');
 const fileInput = document.getElementById('file-input');
-const fileList = document.getElementById('file-list');
-const sendBtn = document.getElementById('send-btn');
-const webhookInput = document.getElementById('webhook');
-const log = document.getElementById('log');
-
 dropzone.addEventListener('click', () => fileInput.click());
 dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('over'); });
 dropzone.addEventListener('dragleave', () => dropzone.classList.remove('over'));
 dropzone.addEventListener('drop', e => { e.preventDefault(); dropzone.classList.remove('over'); addFiles(e.dataTransfer.files); });
-fileInput.addEventListener('change', () => addFiles(fileInput.files));
+fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value=''; });
 
-function addFiles(newFiles) {
-  for (const f of newFiles) {
-    if (files.find(x => x.name === f.name && x.size === f.size)) continue;
-    files.push(f);
+function addFiles(list) {
+  for (const f of list) {
+    if (uploadFiles.find(x => x.name===f.name && x.size===f.size)) continue;
+    uploadFiles.push(f);
   }
-  renderList();
-  updateBtn();
+  renderUploadList();
+  document.getElementById('send-btn').disabled = uploadFiles.length === 0;
 }
 
 function removeFile(idx) {
-  files.splice(idx, 1);
-  renderList();
-  updateBtn();
+  uploadFiles.splice(idx, 1);
+  renderUploadList();
+  document.getElementById('send-btn').disabled = uploadFiles.length === 0;
 }
 
-function renderList() {
-  fileList.innerHTML = '';
-  files.forEach((f, i) => {
-    const item = document.createElement('div');
-    item.className = 'file-item';
-    item.id = 'file-' + i;
+function renderUploadList() {
+  const el = document.getElementById('file-list');
+  el.innerHTML = '';
+  uploadFiles.forEach((f, i) => {
     const chunks = Math.ceil(f.size / CHUNK_SIZE);
-    const sizeStr = f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1) + ' MB' : (f.size/1024).toFixed(0) + ' KB';
-    item.innerHTML = `
+    const sz = f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : (f.size/1024).toFixed(0)+' KB';
+    const div = document.createElement('div');
+    div.className = 'file-item'; div.id = 'fi-'+i;
+    div.innerHTML = `
       <div class="file-header">
-        <span class="file-name" title="${f.name}">${f.name}</span>
-        <span style="display:flex;align-items:center;gap:4px">
-          <span class="file-size">${sizeStr} · ${chunks} chunk${chunks>1?'s':''}</span>
+        <span class="file-name" title="${escHtml(f.name)}">${escHtml(f.name)}</span>
+        <span class="file-meta">
+          ${sz} · ${chunks} chunk${chunks>1?'s':''}
           <button class="remove-btn" onclick="removeFile(${i})">×</button>
         </span>
       </div>
-      <div class="progress-bar"><div class="progress-fill" id="prog-${i}"></div></div>
-      <div class="status-text" id="status-${i}">En attente</div>
-    `;
-    fileList.appendChild(item);
+      <div class="progress-bar"><div class="progress-fill" id="up-prog-${i}"></div></div>
+      <div class="status-text" id="up-status-${i}">En attente</div>`;
+    el.appendChild(div);
   });
 }
 
-function updateBtn() {
-  sendBtn.disabled = files.length === 0;
+function setUpProgress(idx, pct, txt) {
+  const b = document.getElementById('up-prog-'+idx), s = document.getElementById('up-status-'+idx);
+  if (b) b.style.width = pct+'%';
+  if (s) s.textContent = txt;
 }
 
-function addLog(msg, type) {
+function addLog(id, msg, cls) {
+  const log = document.getElementById(id);
   log.classList.add('visible');
   const line = document.createElement('div');
-  line.className = type === 'ok' ? 'log-ok' : type === 'err' ? 'log-err' : '';
+  if (cls) line.className = cls;
   line.textContent = msg;
   log.appendChild(line);
   log.scrollTop = log.scrollHeight;
 }
 
-function setProgress(idx, pct, statusText) {
-  const bar = document.getElementById('prog-' + idx);
-  const st = document.getElementById('status-' + idx);
-  if (bar) bar.style.width = pct + '%';
-  if (st) st.textContent = statusText;
-}
-
-async function uploadChunk(webhookUrl, chunk, filename, chunkIndex, totalChunks) {
-  const label = totalChunks > 1 ? `${filename}.part${String(chunkIndex+1).padStart(3,'0')}` : filename;
+async function uploadChunk(webhookUrl, chunk, filename, idx, total) {
+  const label = total > 1 ? `${filename}.part${String(idx+1).padStart(3,'0')}` : filename;
+  const content = total > 1 ? `📦 **${filename}** — chunk ${idx+1}/${total}` : `📁 **${filename}**`;
   const form = new FormData();
-  const content = totalChunks > 1
-    ? `📦 **${filename}** — chunk ${chunkIndex+1}/${totalChunks}`
-    : `📁 **${filename}**`;
   form.append('payload_json', JSON.stringify({ content }));
   form.append('file', new Blob([chunk]), label);
-
-  const res = await fetch(webhookUrl + '?wait=true', { method: 'POST', body: form });
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`HTTP ${res.status}: ${t.slice(0,120)}`);
-  }
-  return await res.json();
+  const res = await fetch(webhookUrl+'?wait=true', { method:'POST', body:form });
+  if (!res.ok) { const t = await res.text(); throw new Error(`HTTP ${res.status}: ${t.slice(0,100)}`); }
+  return res.json();
 }
 
-async function processFile(file, idx, webhookUrl) {
-  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
-  addLog(`▶ ${file.name} — ${totalChunks} chunk(s)`, '');
-
-  for (let i = 0; i < totalChunks; i++) {
-    const start = i * CHUNK_SIZE;
-    const end = Math.min(start + CHUNK_SIZE, file.size);
-    const chunk = await file.slice(start, end).arrayBuffer();
-    setProgress(idx, Math.round((i / totalChunks) * 90), `Chunk ${i+1}/${totalChunks} en envoi...`);
+async function processUploadFile(file, idx, webhookUrl) {
+  const total = Math.ceil(file.size / CHUNK_SIZE);
+  addLog('log-up', `▶ ${file.name} — ${total} chunk(s)`, 'log-dim');
+  for (let i = 0; i < total; i++) {
+    const buf = await file.slice(i*CHUNK_SIZE, Math.min((i+1)*CHUNK_SIZE, file.size)).arrayBuffer();
+    setUpProgress(idx, Math.round((i/total)*90), `Chunk ${i+1}/${total} en cours...`);
     try {
-      await uploadChunk(webhookUrl, chunk, file.name, i, totalChunks);
-      addLog(`  ✓ chunk ${i+1}/${totalChunks}`, 'ok');
+      await uploadChunk(webhookUrl, buf, file.name, i, total);
+      addLog('log-up', `  ✓ chunk ${i+1}/${total}`, 'log-ok');
     } catch(e) {
-      addLog(`  ✗ chunk ${i+1}: ${e.message}`, 'err');
-      setProgress(idx, 0, '✗ Erreur — vérifiez le webhook');
+      addLog('log-up', `  ✗ chunk ${i+1}: ${e.message}`, 'log-err');
+      setUpProgress(idx, 0, '✗ Erreur');
       throw e;
     }
-    await new Promise(r => setTimeout(r, 600));
+    await sleep(650);
   }
-
-  setProgress(idx, 100, totalChunks > 1 ? `✓ Envoyé en ${totalChunks} chunks` : '✓ Envoyé');
-  addLog(`✓ ${file.name} terminé`, 'ok');
+  setUpProgress(idx, 100, total > 1 ? `✓ Envoyé en ${total} chunks` : '✓ Envoyé');
+  addLog('log-up', `✓ ${file.name} terminé`, 'log-ok');
 }
 
-sendBtn.addEventListener('click', async () => {
-  const webhook = webhookInput.value.trim();
-  if (!webhook.startsWith('https://discord.com/api/webhooks/') && !webhook.startsWith('https://discordapp.com/api/webhooks/')) {
-    addLog('✗ URL webhook invalide — doit commencer par https://discord.com/api/webhooks/', 'err');
+document.getElementById('send-btn').addEventListener('click', async () => {
+  const wh = document.getElementById('webhook-up').value.trim();
+  if (!wh.includes('discord.com/api/webhooks/')) { addLog('log-up','✗ Webhook invalide','log-err'); return; }
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true; btn.textContent = 'Envoi en cours...';
+  document.getElementById('log-up').innerHTML = '';
+  for (let i = 0; i < uploadFiles.length; i++) {
+    try { await processUploadFile(uploadFiles[i], i, wh); }
+    catch(e) { addLog('log-up','Arrêté sur '+uploadFiles[i].name,'log-err'); }
+  }
+  btn.disabled = false; btn.textContent = 'Envoyer sur Discord';
+  addLog('log-up','— Terminé —','log-dim');
+});
+
+// --- DOWNLOAD / SCAN ---
+function parseWebhook(url) {
+  const m = url.match(/discord(?:app)?\.com\/api\/webhooks\/(\d+)\/([^/?#]+)/);
+  return m ? { id: m[1], token: m[2] } : null;
+}
+
+async function scanChannel() {
+  const wh = document.getElementById('webhook-dl').value.trim();
+  const parsed = parseWebhook(wh);
+  if (!parsed) { addLog('log-dl','✗ Webhook invalide','log-err'); return; }
+
+  const status = document.getElementById('scan-status');
+  document.getElementById('log-dl').innerHTML = '';
+  document.getElementById('dl-card').style.display = 'none';
+  status.textContent = 'Connexion...';
+
+  // Récupération channel_id via l'API webhook publique
+  let channelId;
+  try {
+    const r = await fetch(`https://discord.com/api/v10/webhooks/${parsed.id}/${parsed.token}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    channelId = d.channel_id;
+    addLog('log-dl', `Canal: ${channelId}`, 'log-ok');
+  } catch(e) {
+    addLog('log-dl','✗ Impossible de lire le webhook: '+e.message,'log-err');
+    status.textContent = '';
     return;
   }
-  sendBtn.disabled = true;
-  sendBtn.textContent = 'Envoi en cours...';
-  log.innerHTML = '';
 
-  for (let i = 0; i < files.length; i++) {
-    try {
-      await processFile(files[i], i, webhook);
-    } catch(e) {
-      addLog(`Arrêt sur ${files[i].name}`, 'err');
+  // Lecture des messages via le token webhook (pas besoin de bot)
+  const allMsgs = [];
+  let before = null;
+  status.textContent = 'Lecture des messages...';
+  try {
+    for (let page = 0; page < 30; page++) {
+      const url = `https://discord.com/api/v10/channels/${channelId}/messages?limit=100${before?'&before='+before:''}`;
+      const r = await fetch(url, { headers: { Authorization: `Webhook ${parsed.id} ${parsed.token}` } });
+      if (!r.ok) {
+        // fallback: essai sans auth (messages publics)
+        addLog('log-dl','⚠ Auth limitée — scan partiel possible','log-dim');
+        break;
+      }
+      const msgs = await r.json();
+      if (!msgs.length) break;
+      allMsgs.push(...msgs);
+      before = msgs[msgs.length-1].id;
+      status.textContent = `${allMsgs.length} messages lus...`;
+      if (msgs.length < 100) break;
+      await sleep(400);
+    }
+  } catch(e) { addLog('log-dl','⚠ '+e.message,'log-dim'); }
+
+  addLog('log-dl', `${allMsgs.length} messages analysés`, 'log-ok');
+
+  // Regroupement des chunks
+  scannedFiles = {};
+  for (const msg of allMsgs) {
+    if (!msg.attachments?.length) continue;
+    for (const att of msg.attachments) {
+      const name = att.filename;
+      const m = name.match(/^(.+)\.part(\d+)$/);
+      if (m) {
+        const base = m[1], num = parseInt(m[2]);
+        if (!scannedFiles[base]) scannedFiles[base] = { chunks: {}, multi: true, size: 0 };
+        scannedFiles[base].chunks[num] = { url: att.url, size: att.size };
+        scannedFiles[base].size += att.size;
+      } else {
+        if (!scannedFiles[name]) scannedFiles[name] = { chunks: { 1: { url: att.url, size: att.size } }, multi: false, size: att.size };
+      }
     }
   }
 
-  sendBtn.disabled = false;
-  sendBtn.textContent = 'Envoyer sur Discord';
-  addLog('— Terminé —', '');
-});
+  renderDownloadList();
+  const count = Object.keys(scannedFiles).length;
+  status.textContent = `${count} fichier${count>1?'s':''} trouvé${count>1?'s':''}`;
+  if (count) document.getElementById('dl-card').style.display = 'block';
+}
+
+function renderDownloadList() {
+  const list = document.getElementById('dl-list');
+  const keys = Object.keys(scannedFiles);
+  if (!keys.length) { list.innerHTML = '<p class="empty">Aucun fichier trouvé dans ce canal.</p>'; return; }
+  list.innerHTML = '';
+  keys.forEach(name => {
+    const f = scannedFiles[name];
+    const chunkCount = Object.keys(f.chunks).length;
+    const sz = f.size > 1048576 ? (f.size/1048576).toFixed(1)+' MB' : (f.size/1024).toFixed(0)+' KB';
+    const div = document.createElement('div');
+    div.className = 'dl-item'; div.id = 'dl-'+btoa(name).replace(/=/g,'');
+    div.innerHTML = `
+      <div class="dl-info" style="min-width:0">
+        <div class="dl-name" title="${escHtml(name)}">${escHtml(name)}</div>
+        <div class="dl-meta">${sz} · ${chunkCount} chunk${chunkCount>1?'s':''}</div>
+        <div class="dl-prog-bar" id="dlpb-${btoa(name).replace(/=/g,'')}"><div class="dl-prog-fill" id="dlpf-${btoa(name).replace(/=/g,'')}"></div></div>
+      </div>
+      <div class="dl-actions">
+        ${f.multi ? `<span class="badge">${chunkCount} parts</span>` : ''}
+        <button class="btn-dl" id="dlbtn-${btoa(name).replace(/=/g,'')}" onclick="downloadFile('${escAttr(name)}')">Télécharger</button>
+      </div>`;
+    list.appendChild(div);
+  });
+}
+
+async function downloadFile(name) {
+  const f = scannedFiles[name];
+  if (!f) return;
+  const key = btoa(name).replace(/=/g,'');
+  const btn = document.getElementById('dlbtn-'+key);
+  const pb = document.getElementById('dlpb-'+key);
+  const pf = document.getElementById('dlpf-'+key);
+  btn.disabled = true; btn.textContent = '...';
+  pb.style.display = 'block';
+
+  const sortedKeys = Object.keys(f.chunks).map(Number).sort((a,b)=>a-b);
+  const buffers = [];
+  addLog('log-dl', `▶ Téléchargement: ${name}`, 'log-dim');
+
+  for (let i = 0; i < sortedKeys.length; i++) {
+    const chunk = f.chunks[sortedKeys[i]];
+    pf.style.width = Math.round((i/sortedKeys.length)*90)+'%';
+    btn.textContent = `${i+1}/${sortedKeys.length}`;
+    try {
+      const r = await fetch(chunk.url);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      buffers.push(await r.arrayBuffer());
+      addLog('log-dl', `  ✓ part ${i+1}/${sortedKeys.length}`, 'log-ok');
+    } catch(e) {
+      addLog('log-dl', `  ✗ part ${i+1}: ${e.message}`, 'log-err');
+      btn.disabled = false; btn.textContent = 'Réessayer';
+      pb.style.display = 'none';
+      return;
+    }
+  }
+
+  pf.style.width = '100%';
+  // Reconstitution du fichier
+  const total = buffers.reduce((s,b) => s+b.byteLength, 0);
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const buf of buffers) { merged.set(new Uint8Array(buf), offset); offset += buf.byteLength; }
+
+  const blob = new Blob([merged]);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+
+  addLog('log-dl', `✓ ${name} téléchargé et reconstitué`, 'log-ok');
+  btn.disabled = false; btn.textContent = 'Télécharger';
+  setTimeout(() => { pb.style.display='none'; pf.style.width='0%'; }, 1500);
+}
+
+// --- UTILS ---
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return s.replace(/'/g,"\\'"); }
 </script>
+</body>
+</html>
